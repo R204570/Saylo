@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saylo - AI Interview Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎯 Saylo</h1>
+            <p class="subtitle">AI-Powered Interview Practice Platform</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Step 1: Upload Files -->
+            <section class="card" id="upload-section">
+                <h2>📁 Step 1: Upload Files</h2>
+                
+                <div class="upload-group">
+                    <label for="resume-upload">
+                        <strong>Resume (PDF/DOCX)</strong>
+                    </label>
+                    <input type="file" id="resume-upload" accept=".pdf,.docx" />
+                    <button onclick="uploadResume()" class="btn btn-primary">Upload Resume</button>
+                    <div id="resume-status" class="status"></div>
+                </div>
+
+                <div class="upload-group">
+                    <label for="reference-upload">
+                        <strong>Reference Document (PDF/DOCX/TXT)</strong>
+                    </label>
+                    <input type="file" id="reference-upload" accept=".pdf,.docx,.txt" />
+                    <button onclick="uploadReference()" class="btn btn-primary">Upload Reference</button>
+                    <div id="reference-status" class="status"></div>
+                </div>
+            </section>
+
+            <!-- Step 2: Create Session -->
+            <section class="card" id="session-section">
+                <h2>🎬 Step 2: Create Interview Session</h2>
+                
+                <div class="form-group">
+                    <label for="subject-name">
+                        <strong>Subject/Role</strong>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="subject-name" 
+                        placeholder="e.g., Software Engineer Interview"
+                        value="Software Engineer Interview"
+                    />
+                </div>
+
+                <button onclick="createSession()" class="btn btn-success">Create Session</button>
+                <div id="session-status" class="status"></div>
+            </section>
+
+            <!-- Step 3: Interview -->
+            <section class="card" id="interview-section" style="display: none;">
+                <h2>🎤 Step 3: Interview</h2>
+                
+                <div class="interview-controls">
+                    <button onclick="startInterview()" class="btn btn-success" id="start-btn">Start Interview</button>
+                    <button onclick="endInterview()" class="btn btn-danger" id="end-btn" style="display: none;">End Interview</button>
+                </div>
+
+                <div id="interview-status" class="status"></div>
+
+                <!-- Question Display -->
+                <div id="question-container" style="display: none;">
+                    <div class="question-box">
+                        <h3>Question <span id="question-number">1</span></h3>
+                        <p id="question-text"></p>
+                    </div>
+
+                    <div class="answer-box">
+                        <label><strong>Your Answer:</strong></label>
+                        <textarea id="answer-text" rows="6" placeholder="Type your answer here..."></textarea>
+                        <button onclick="submitAnswer()" class="btn btn-primary">Submit Answer</button>
+                    </div>
+
+                    <div id="evaluation-result" class="evaluation"></div>
+                </div>
+            </section>
+
+            <!-- Step 4: Analytics -->
+            <section class="card" id="analytics-section" style="display: none;">
+                <h2>📊 Step 4: Session Analytics</h2>
+                <div id="analytics-content"></div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Built with ❤️ for local-first AI development</p>
+            <p><a href="http://localhost:8000/docs" target="_blank">API Documentation</a></p>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

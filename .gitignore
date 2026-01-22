@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment Variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Data
+data/uploads/*
+!data/uploads/.gitkeep
+data/chromadb/*
+!data/chromadb/.gitkeep
+data/recordings/*
+!data/recordings/.gitkeep
+
+# Models
+models/ollama/*
+models/whisper/*
+models/piper/*
+
+# Temporary Files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node (if using npm for frontend tools)
+node_modules/
+package-lock.json
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# ChromaDB
+chroma.sqlite3

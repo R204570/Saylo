@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: saylo_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saylo_interview
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: saylo_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # LiveKit Server (Self-hosted)
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: saylo_livekit
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"  # HTTP
+      - "7881:7881"  # WebRTC
+      - "7882:7882/udp"  # TURN/UDP
+    volumes:
+      - ./docker/livekit/livekit.yaml:/etc/livekit.yaml
+    environment:
+      - LIVEKIT_KEYS=devkey:secret
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:7880"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

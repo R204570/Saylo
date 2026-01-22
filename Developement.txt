@@ -1,0 +1,1207 @@
+AI-Based Interview Helper Platform - Development Plan
+Executive Summary
+This document outlines the comprehensive development plan for an AI-powered interview preparation platform featuring real-time voice/video interaction, intelligent question generation, contextual assistance, and performance analytics. The platform leverages Ollama for AI models, LiveKit for real-time communication, ChromaDB for vector storage, and PostgreSQL for relational data.
+________________________________________
+1. Project Overview
+1.1 Product Vision
+An intelligent interview preparation platform that provides personalized, context-aware practice sessions with real-time AI assistance, multi-modal interaction, and comprehensive performance tracking across various preparation domains (IELTS, job interviews, certifications, etc.).
+1.2 Core Capabilities
+•	Real-time voice/video conversation with AI interviewer
+•	Vision-based proctoring (presence detection, multiple person detection)
+•	Dynamic question generation (MCQ, open-ended, coding challenges)
+•	Context-aware assistance using uploaded materials
+•	Subject-based organization (IELTS, Job Roles, Certifications)
+•	Resume analysis and tailored questioning
+•	Comprehensive scoring and feedback system
+•	Multi-source reference material integration
+1.3 Technology Stack
+Backend Framework: Python (FastAPI/Django) AI/ML Layer: Ollama (local LLM deployment) Real-time Communication: LiveKit SDK Vector Database: ChromaDB Relational Database: PostgreSQL Authentication: OAuth2 + JWT File Storage: S3-compatible object storage Caching: Redis Message Queue: RabbitMQ/Celery API Gateway: Kong/Traefik
+________________________________________
+2. System Architecture
+2.1 High-Level Architecture
+┌─────────────────────────────────────────────────────────┐
+│                    Client Layer                          │
+│  (Web App - React/Vue | Mobile - React Native/Flutter)  │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│              API Gateway + Load Balancer                 │
+│           (Authentication, Rate Limiting, SSL)           │
+└─────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   Auth       │   │   Core API   │   │  LiveKit     │
+│   Service    │   │   Service    │   │  Service     │
+└──────────────┘   └──────────────┘   └──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   AI         │   │   Question   │   │  Analytics   │
+│   Service    │   │   Service    │   │  Service     │
+│  (Ollama)    │   │              │   │              │
+└──────────────┘   └──────────────┘   └──────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│ PostgreSQL   │   │  ChromaDB    │   │    Redis     │
+│   (User,     │   │  (Vectors,   │   │   (Cache,    │
+│   Sessions)  │   │  Context)    │   │   Sessions)  │
+└──────────────┘   └──────────────┘   └──────────────┘
+2.2 Microservices Architecture
+Service 1: Authentication Service
+•	User registration, login, OAuth integration
+•	JWT token generation and validation
+•	Password management, MFA support
+•	Session management
+Service 2: User Management Service
+•	Profile management
+•	Subject/branch creation and organization
+•	Resume storage and parsing
+•	Preference management
+Service 3: Content Management Service
+•	Reference material upload and processing
+•	PDF/document parsing and vectorization
+•	File storage and retrieval
+•	Content versioning
+Service 4: AI Orchestration Service
+•	Ollama model management
+•	Prompt engineering and context assembly
+•	Response generation and streaming
+•	Model switching based on task type
+Service 5: LiveKit Integration Service
+•	Room creation and management
+•	Real-time audio/video streaming
+•	Participant management
+•	Recording management
+Service 6: Vision Processing Service
+•	Real-time frame capture from video
+•	Presence detection algorithms
+•	Multiple person detection
+•	Anomaly flagging
+Service 7: Question Generation Service
+•	Dynamic question creation based on context
+•	MCQ generation with distractors
+•	Question difficulty calibration
+•	Question bank management
+Service 8: Answer Evaluation Service
+•	MCQ answer validation
+•	Free-text answer analysis using LLM
+•	Scoring algorithms
+•	Feedback generation
+Service 9: Analytics & Reporting Service
+•	Performance metrics calculation
+•	Session recording and transcript storage
+•	Report generation
+•	Progress tracking
+Service 10: Notification Service
+•	Email notifications
+•	In-app notifications
+•	Webhook integrations
+________________________________________
+3. Data Architecture
+3.1 PostgreSQL Schema Design
+Users Table
+•	user_id (UUID, PK)
+•	email (unique, indexed)
+•	password_hash
+•	full_name
+•	created_at, updated_at
+•	last_login
+•	is_active, is_verified
+•	mfa_enabled
+Subjects/Branches Table
+•	subject_id (UUID, PK)
+•	user_id (FK)
+•	subject_name (e.g., "IELTS Speaking", "Software Engineer Interview")
+•	subject_type (enum: IELTS, JOB_INTERVIEW, CERTIFICATION, CUSTOM)
+•	created_at, updated_at
+•	is_active
+Interview Sessions Table
+•	session_id (UUID, PK)
+•	user_id (FK)
+•	subject_id (FK)
+•	session_type (enum: PRACTICE, MOCK, EVALUATION)
+•	started_at, ended_at
+•	duration_seconds
+•	livekit_room_id
+•	recording_url
+•	status (enum: SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED)
+Questions Table
+•	question_id (UUID, PK)
+•	session_id (FK)
+•	question_text
+•	question_type (enum: MCQ, OPEN_ENDED, CODING, BEHAVIORAL)
+•	difficulty_level (1-5)
+•	expected_duration_seconds
+•	created_at
+•	ai_generated (boolean)
+MCQ Options Table
+•	option_id (UUID, PK)
+•	question_id (FK)
+•	option_text
+•	is_correct (boolean)
+•	option_order
+Answers Table
+•	answer_id (UUID, PK)
+•	question_id (FK)
+•	session_id (FK)
+•	user_answer_text
+•	selected_option_id (FK, nullable)
+•	response_time_seconds
+•	submitted_at
+Answer Evaluations Table
+•	evaluation_id (UUID, PK)
+•	answer_id (FK)
+•	score (decimal)
+•	max_score (decimal)
+•	feedback_text
+•	evaluation_criteria (JSONB)
+•	evaluated_at
+Session Transcripts Table
+•	transcript_id (UUID, PK)
+•	session_id (FK)
+•	speaker (enum: USER, AI)
+•	text_content
+•	timestamp_offset_ms
+•	audio_segment_url (optional)
+Reference Materials Table
+•	material_id (UUID, PK)
+•	subject_id (FK)
+•	file_name
+•	file_type (PDF, DOCX, TXT, URL)
+•	storage_path
+•	file_size_bytes
+•	uploaded_at
+•	processed (boolean)
+•	chromadb_collection_id
+Resumes Table
+•	resume_id (UUID, PK)
+•	user_id (FK)
+•	subject_id (FK, nullable)
+•	file_name
+•	storage_path
+•	parsed_data (JSONB)
+•	uploaded_at
+•	is_active
+Session Analytics Table
+•	analytics_id (UUID, PK)
+•	session_id (FK)
+•	overall_score (decimal)
+•	fluency_score (decimal)
+•	accuracy_score (decimal)
+•	confidence_score (decimal)
+•	response_time_avg_seconds
+•	questions_answered
+•	questions_correct
+•	proctoring_flags (JSONB)
+•	generated_at
+Proctoring Events Table
+•	event_id (UUID, PK)
+•	session_id (FK)
+•	event_type (enum: MULTIPLE_PERSONS, NO_FACE, LOOKING_AWAY, TAB_SWITCH)
+•	timestamp_offset_ms
+•	confidence_score
+•	metadata (JSONB)
+3.2 ChromaDB Collections Structure
+Collection Naming Convention: {user_id}_{subject_id}_materials
+Document Metadata Schema:
+•	source_file: Original filename
+•	page_number: For paginated documents
+•	chunk_index: Sequential chunk number
+•	upload_date: ISO timestamp
+•	material_id: Reference to PostgreSQL
+•	subject_id: Reference to PostgreSQL
+Embedding Strategy:
+•	Chunk size: 500-1000 tokens with 100 token overlap
+•	Embedding model: Ollama embeddings (nomic-embed-text or similar)
+•	Metadata filtering for context retrieval
+________________________________________
+4. Security Architecture
+4.1 OWASP Top 10 Mitigation
+A01: Broken Access Control
+•	Implement role-based access control (RBAC)
+•	Enforce authorization checks at service level
+•	Use UUID instead of sequential IDs
+•	Validate user ownership of resources (subjects, sessions, materials)
+•	Implement rate limiting per user/IP
+A02: Cryptographic Failures
+•	Encrypt data at rest (database encryption, file storage encryption)
+•	Use TLS 1.3 for all communications
+•	Hash passwords with Argon2id or bcrypt (cost factor 12+)
+•	Encrypt sensitive fields in database (resumes, personal data)
+•	Secure key management using vault (HashiCorp Vault/AWS KMS)
+A03: Injection
+•	Use parameterized queries (SQLAlchemy ORM)
+•	Validate and sanitize all user inputs
+•	Implement input validation schemas (Pydantic models)
+•	Use prepared statements for database operations
+•	Sanitize file uploads (virus scanning, type validation)
+•	Escape output in templates
+A04: Insecure Design
+•	Implement threat modeling for each service
+•	Security requirements in design phase
+•	Principle of least privilege
+•	Defense in depth architecture
+•	Secure session management
+•	Implement circuit breakers for external services
+A05: Security Misconfiguration
+•	Disable debug mode in production
+•	Remove default credentials
+•	Implement security headers (CSP, HSTS, X-Frame-Options)
+•	Regular security audits and dependency scanning
+•	Automated security testing in CI/CD
+•	Secure default configurations
+A06: Vulnerable and Outdated Components
+•	Automated dependency scanning (Dependabot, Snyk)
+•	Regular security patches
+•	Software composition analysis
+•	Pin dependency versions
+•	Monitor CVE databases
+A07: Identification and Authentication Failures
+•	Multi-factor authentication support
+•	Implement account lockout after failed attempts
+•	Secure password reset flow with time-limited tokens
+•	Session timeout after inactivity
+•	JWT with short expiration (15 min access, 7 day refresh)
+•	Logout functionality that invalidates tokens
+A08: Software and Data Integrity Failures
+•	Code signing for deployments
+•	Verify integrity of uploaded files
+•	Implement checksums for file storage
+•	Use trusted package repositories
+•	CI/CD pipeline security
+A09: Security Logging and Monitoring Failures
+•	Comprehensive audit logging
+•	Log authentication events (success/failure)
+•	Log authorization failures
+•	Monitor for anomalous patterns
+•	Centralized log management (ELK stack)
+•	Real-time alerting for security events
+•	Log retention policy (minimum 90 days)
+A10: Server-Side Request Forgery (SSRF)
+•	Validate and whitelist URLs
+•	Disable unnecessary URL schemes
+•	Network segmentation
+•	Use internal service mesh
+•	Validate file upload sources
+4.2 Input Validation & Sanitization Strategy
+File Upload Validation:
+•	Whitelist allowed file types (PDF, DOCX, TXT)
+•	Maximum file size limits (50MB for documents, 10MB for resumes)
+•	Virus/malware scanning using ClamAV
+•	Filename sanitization (remove special characters, path traversal)
+•	Content-type validation (magic number verification)
+•	Store in isolated storage with no execution permissions
+Text Input Validation:
+•	Maximum length constraints
+•	Character encoding validation (UTF-8)
+•	HTML sanitization for user-generated content
+•	SQL injection prevention through ORM
+•	XSS prevention through output encoding
+•	JSON schema validation for API payloads
+API Input Validation:
+•	Pydantic models for request validation
+•	Type checking and coercion
+•	Range validation for numeric inputs
+•	Regex patterns for formatted inputs (email, phone)
+•	Enum validation for categorical inputs
+Real-time Stream Validation:
+•	Validate WebRTC signaling messages
+•	Rate limiting on message frequency
+•	Size limits on binary data frames
+•	Protocol compliance validation
+4.3 Authentication & Authorization
+Authentication Flow:
+1.	User submits credentials
+2.	Backend validates against PostgreSQL (password hash comparison)
+3.	Optional MFA validation (TOTP/SMS)
+4.	Generate JWT access token (15 min) and refresh token (7 days)
+5.	Store refresh token hash in Redis with expiration
+6.	Return tokens to client
+Authorization Layers:
+•	API Gateway: Validate JWT signature and expiration
+•	Service Layer: Verify user permissions for resource access
+•	Database Layer: Row-level security policies
+•	File Storage: Signed URLs with expiration
+Token Structure:
+Access Token Claims:
+- user_id
+- email
+- roles
+- exp (15 minutes)
+- iat
+- jti (token ID for revocation)
+
+Refresh Token Claims:
+- user_id
+- token_family_id (for rotation)
+- exp (7 days)
+Session Management:
+•	Store active sessions in Redis
+•	Support for session revocation
+•	Track concurrent sessions per user
+•	Automatic cleanup of expired sessions
+4.4 Data Privacy & Compliance
+GDPR Compliance:
+•	Data minimization principle
+•	User consent management
+•	Right to access (data export)
+•	Right to erasure (account deletion with cascade)
+•	Data portability
+•	Privacy by design
+Data Retention Policy:
+•	Active session data: Duration of session + 30 days
+•	Session recordings: User-configurable (default 90 days)
+•	Transcripts: User-configurable (default 180 days)
+•	Analytics data: Aggregated and anonymized after 1 year
+•	Deleted account data: Soft delete with 30-day recovery, then hard delete
+PII Handling:
+•	Identify and tag PII fields
+•	Encrypt PII at rest
+•	Mask PII in logs
+•	Access controls for PII data
+•	Audit trail for PII access
+________________________________________
+5. AI/ML Pipeline Architecture
+5.1 Ollama Integration Strategy
+Model Selection Matrix:
+•	Conversation & General Q&A: llama3.1:8b or mistral:7b
+•	Resume Parsing: Custom fine-tuned model or llama3.1
+•	Answer Evaluation: llama3.1:70b or mixtral:8x7b
+•	Vision Processing: llava:13b or bakllava
+•	Embedding Generation: nomic-embed-text
+Model Deployment Architecture:
+•	Containerized Ollama instances (Docker)
+•	Horizontal scaling based on load
+•	Model caching in memory
+•	GPU allocation per instance
+•	Health monitoring and auto-restart
+Prompt Engineering Framework:
+•	System prompts stored in configuration
+•	Template-based prompt generation
+•	Context injection from ChromaDB
+•	Few-shot learning examples
+•	Chain-of-thought prompting for complex tasks
+•	Output format specification (JSON schemas)
+5.2 Context Assembly Pipeline
+Context Retrieval Process:
+1.	User initiates session with subject_id
+2.	Retrieve all reference materials for subject from PostgreSQL
+3.	Fetch embeddings from ChromaDB collection
+4.	On each question/interaction: 
+o	Generate query embedding
+o	Perform similarity search in ChromaDB (top-k=5)
+o	Retrieve relevant chunks with metadata
+o	Assemble context window (max 4000 tokens)
+o	Include user preferences and resume data if applicable
+5.	Construct prompt with context + current question
+6.	Send to Ollama for generation
+Context Window Management:
+•	Sliding window for conversation history (last 10 exchanges)
+•	Summarization of older context
+•	Priority ranking: Recent conversation > Retrieved docs > Resume > Preferences
+•	Token budget allocation per context source
+5.3 Vision Processing Pipeline
+Real-time Processing Flow:
+1.	LiveKit video stream capture (1 frame per 2 seconds)
+2.	Frame preprocessing (resize, normalize)
+3.	Send to Ollama vision model (llava)
+4.	Prompt: "Analyze this image from an interview setting. Count the number of people visible. Determine if the candidate is looking at the camera. Return JSON with: person_count, face_detected, looking_at_camera, anomaly_detected, confidence_score"
+5.	Parse JSON response
+6.	If anomaly detected: Log to proctoring_events table
+7.	If critical violation: Trigger real-time alert
+Optimization Strategies:
+•	Frame sampling (not every frame)
+•	Batch processing when possible
+•	Model caching and warm-up
+•	Async processing to avoid blocking
+•	Fallback to simpler detection if model slow
+5.4 Question Generation Algorithm
+Dynamic Question Generation:
+1.	Analyze session context (subject type, user level, previous questions)
+2.	Retrieve relevant content from ChromaDB
+3.	Construct generation prompt: 
+o	Subject context
+o	Difficulty level
+o	Question type (MCQ, open-ended)
+o	Related concepts from reference materials
+4.	Generate question using Ollama
+5.	For MCQ: Generate 4 options (1 correct, 3 distractors)
+6.	Validate question quality (coherence, relevance)
+7.	Store in database with metadata
+8.	Present to user
+Question Difficulty Calibration:
+•	Track user performance on previous questions
+•	Adaptive difficulty adjustment
+•	Item Response Theory (IRT) modeling
+•	Balance question distribution across topics
+5.5 Answer Evaluation System
+MCQ Evaluation:
+•	Direct comparison with correct_option_id
+•	Binary scoring (1 or 0)
+•	Response time tracking
+•	Store evaluation immediately
+Open-ended Answer Evaluation:
+1.	Retrieve question and expected answer criteria
+2.	Construct evaluation prompt: 
+o	Question text
+o	User answer
+o	Evaluation rubric
+o	Reference material context
+3.	Request structured output (JSON): 
+o	score (0-10)
+o	correctness assessment
+o	fluency/coherence (for IELTS)
+o	specific feedback
+o	areas for improvement
+4.	Parse and validate LLM response
+5.	Store evaluation in database
+6.	Generate user-friendly feedback
+Scoring Rubrics:
+•	IELTS Speaking: Fluency, Lexical Resource, Grammatical Range, Pronunciation
+•	Technical Interviews: Correctness, Approach, Code Quality, Communication
+•	Behavioral: STAR framework alignment, Clarity, Relevance
+________________________________________
+6. LiveKit Integration Design
+6.1 Real-time Communication Flow
+Session Initialization:
+1.	User clicks "Start Interview" for a subject
+2.	Backend creates session record in PostgreSQL
+3.	Backend calls LiveKit API to create room with session_id as room_name
+4.	Generate access token with user identity and permissions
+5.	Return room details and token to frontend
+6.	Frontend connects to LiveKit room using SDK
+Participant Roles:
+•	User: Can publish audio/video, receive audio
+•	AI Agent: Publishes audio, subscribes to user audio/video
+•	Monitor: Observes for proctoring (subscribes to video only)
+Media Tracks:
+•	User publishes: Audio (microphone), Video (webcam)
+•	AI Agent publishes: Audio (TTS output)
+•	Recording: Server-side recording of all tracks
+6.2 AI Voice Integration
+Text-to-Speech (TTS):
+•	Use Piper TTS or Coqui TTS for AI voice
+•	Generate audio from AI responses
+•	Stream audio to LiveKit room as track
+•	Natural voice selection based on interview type
+Speech-to-Text (STT):
+•	Capture user audio track from LiveKit
+•	Use Whisper (via Ollama or separate service)
+•	Real-time transcription with streaming
+•	Store transcripts with timestamps
+Conversation Flow:
+1.	AI generates question text (Ollama)
+2.	Convert to speech (TTS)
+3.	Publish audio to LiveKit room
+4.	User speaks response
+5.	Capture audio and transcribe (STT)
+6.	Send text to Ollama for evaluation
+7.	Generate next question/feedback
+8.	Repeat
+6.3 Recording & Storage
+Recording Strategy:
+•	Enable server-side recording via LiveKit egress
+•	Record composite track (all participants)
+•	Store recordings in S3-compatible storage
+•	Generate recording URL and store in session record
+•	Optional: Separate tracks for post-processing
+Transcript Storage:
+•	Real-time transcript insertion to PostgreSQL
+•	Associate each transcript segment with timestamp
+•	Link to recording for playback synchronization
+•	Enable searchable transcript archive
+________________________________________
+7. Development Phases & Milestones
+Phase 1: Foundation & Core Infrastructure (Weeks 1-4)
+Week 1: Environment Setup & Architecture
+•	Development environment setup
+•	Repository structure and branching strategy
+•	CI/CD pipeline configuration (GitHub Actions/GitLab CI)
+•	Infrastructure as Code setup (Terraform/Pulumi)
+•	Database schema design finalization
+•	API specification (OpenAPI/Swagger)
+Week 2: Authentication & User Management
+•	User registration and login endpoints
+•	JWT implementation
+•	Password hashing and validation
+•	Email verification flow
+•	Password reset functionality
+•	Basic user profile management
+•	Unit tests for auth service
+Week 3: Database & ORM Setup
+•	PostgreSQL deployment and configuration
+•	SQLAlchemy models for all tables
+•	Alembic migrations setup
+•	Database connection pooling
+•	Redis setup for caching
+•	Basic CRUD operations for users and subjects
+Week 4: API Gateway & Service Foundation
+•	API Gateway configuration
+•	Request validation middleware
+•	Rate limiting implementation
+•	CORS configuration
+•	Error handling and logging setup
+•	Health check endpoints
+•	Integration tests for core API
+Milestone 1 Deliverable: Authenticated API with user management and database operations
+________________________________________
+Phase 2: Subject & Content Management (Weeks 5-7)
+Week 5: Subject/Branch System
+•	Subject creation and management endpoints
+•	Subject listing and filtering
+•	Subject metadata handling
+•	Subject deletion with cleanup
+•	Permission checks for subject access
+•	Database migrations for subject tables
+Week 6: File Upload & Storage
+•	File upload endpoint with validation
+•	Integration with S3/MinIO
+•	Virus scanning implementation
+•	Resume upload and storage
+•	Reference material upload
+•	File metadata tracking
+•	Storage quota management
+Week 7: Document Processing
+•	PDF parsing (PyPDF2/pdfplumber)
+•	DOCX parsing (python-docx)
+•	Text extraction and cleaning
+•	Document chunking algorithm
+•	ChromaDB integration setup
+•	Vector generation and storage
+•	Search functionality testing
+Milestone 2 Deliverable: Complete subject and content management system with vector storage
+________________________________________
+Phase 3: AI Integration (Weeks 8-11)
+Week 8: Ollama Setup & Model Management
+•	Ollama server deployment
+•	Model download and caching
+•	API client implementation
+•	Model switching logic
+•	Performance benchmarking
+•	Error handling for model failures
+Week 9: Prompt Engineering & Context Assembly
+•	Prompt templates for different tasks
+•	Context retrieval from ChromaDB
+•	Context ranking and selection
+•	Token budget management
+•	Conversation history management
+•	Testing with various scenarios
+Week 10: Question Generation Service
+•	Question generation pipeline
+•	MCQ generation with distractors
+•	Open-ended question creation
+•	Question validation logic
+•	Database storage integration
+•	API endpoints for question management
+Week 11: Answer Evaluation Service
+•	MCQ evaluation logic
+•	Open-ended answer evaluation pipeline
+•	Scoring algorithms
+•	Feedback generation
+•	Evaluation storage
+•	API endpoints for evaluations
+Milestone 3 Deliverable: Working AI services for question generation and evaluation
+________________________________________
+Phase 4: Real-time Communication (Weeks 12-15)
+Week 12: LiveKit Integration
+•	LiveKit server deployment
+•	Room creation and management
+•	Access token generation
+•	SDK integration testing
+•	Connection handling
+•	Basic audio/video streaming
+Week 13: Vision Processing
+•	Frame capture from video stream
+•	Vision model integration (llava)
+•	Presence detection algorithm
+•	Multiple person detection
+•	Anomaly logging
+•	Real-time alert system
+Week 14: Speech Processing
+•	Whisper integration for STT
+•	TTS setup (Piper/Coqui)
+•	Audio stream handling
+•	Transcript generation
+•	Transcript storage
+•	Synchronization with video
+Week 15: AI Voice Agent
+•	Voice agent orchestration
+•	Conversation flow management
+•	Real-time response generation
+•	Audio streaming to LiveKit
+•	End-to-end conversation testing
+•	Latency optimization
+Milestone 4 Deliverable: Real-time interview sessions with AI voice agent and vision monitoring
+________________________________________
+Phase 5: Interactive Features (Weeks 16-18)
+Week 16: MCQ Popup System
+•	Frontend component design
+•	Backend API for MCQ delivery
+•	Answer submission handling
+•	Real-time evaluation feedback
+•	UI/UX for question presentation
+•	Timer integration
+Week 17: Chat/Typing Interface
+•	Chat interface for text questions
+•	Real-time typing detection
+•	Message persistence
+•	AI response in chat
+•	Chat history display
+•	Notification system
+Week 18: Session Recording & Playback
+•	Recording initiation and termination
+•	Recording storage and retrieval
+•	Playback interface
+•	Transcript synchronization
+•	Download functionality
+•	Privacy controls
+Milestone 5 Deliverable: Complete interactive interview experience with all input modes
+________________________________________
+Phase 6: Analytics & Reporting (Weeks 19-21)
+Week 19: Scoring Engine
+•	Overall score calculation
+•	Subscale scoring (fluency, accuracy, etc.)
+•	Score normalization
+•	Performance metrics computation
+•	Proctoring flag integration
+•	Score storage
+Week 20: Report Generation
+•	Report template design
+•	Data aggregation for reports
+•	PDF report generation
+•	Performance visualization
+•	Comparison with benchmarks
+•	Report delivery system
+Week 21: Analytics Dashboard
+•	User dashboard design
+•	Progress tracking over time
+•	Subject-wise analytics
+•	Weak area identification
+•	Recommendation engine
+•	Export functionality
+Milestone 6 Deliverable: Complete analytics and reporting system
+________________________________________
+Phase 7: Security Hardening (Weeks 22-23)
+Week 22: Security Implementation
+•	Input sanitization review
+•	SQL injection testing
+•	XSS prevention verification
+•	CSRF protection
+•	Security headers implementation
+•	Penetration testing
+Week 23: Security Audit & Fixes
+•	OWASP compliance audit
+•	Dependency vulnerability scanning
+•	Security logging enhancement
+•	Access control review
+•	Data encryption verification
+•	Security documentation
+Milestone 7 Deliverable: Security-hardened platform ready for production
+________________________________________
+Phase 8: Testing & Quality Assurance (Weeks 24-26)
+Week 24: Unit & Integration Testing
+•	Unit test coverage improvement (target 80%+)
+•	Integration test suite
+•	API contract testing
+•	Database integration tests
+•	Mock service testing
+•	Test automation
+Week 25: End-to-End Testing
+•	E2E test scenarios
+•	User journey testing
+•	Performance testing (load, stress)
+•	Real-time communication testing
+•	Edge case testing
+•	Regression testing
+Week 26: User Acceptance Testing
+•	UAT environment setup
+•	Test user recruitment
+•	Feedback collection
+•	Bug fixing
+•	Performance optimization
+•	Documentation updates
+Milestone 8 Deliverable: Fully tested platform ready for beta release
+________________________________________
+Phase 9: Deployment & DevOps (Weeks 27-28)
+Week 27: Production Infrastructure
+•	Production environment setup
+•	Kubernetes/Docker deployment
+•	Database migration to production
+•	SSL certificate configuration
+•	CDN setup for static assets
+•	Monitoring and alerting (Prometheus, Grafana)
+Week 28: Launch Preparation
+•	Final security review
+•	Performance optimization
+•	Backup and disaster recovery setup
+•	Documentation finalization
+•	User onboarding flow
+•	Support system setup
+Milestone 9 Deliverable: Production deployment complete
+________________________________________
+Phase 10: Post-Launch & Iteration (Week 29+)
+Week 29-30: Monitoring & Bug Fixes
+•	Real-time monitoring
+•	User feedback analysis
+•	Critical bug fixes
+•	Performance tuning
+•	Scalability adjustments
+Ongoing: Feature Enhancements
+•	New interview types
+•	Additional language support
+•	Mobile app development
+•	Advanced analytics
+•	Integration with third-party platforms
+•	AI model improvements
+________________________________________
+8. Technical Implementation Details
+8.1 API Design Principles
+RESTful API Standards:
+•	Resource-based URLs (/api/v1/subjects/{subject_id}/sessions)
+•	HTTP verbs: GET (read), POST (create), PUT/PATCH (update), DELETE (remove)
+•	Proper status codes (200, 201, 400, 401, 403, 404, 500)
+•	JSON request/response bodies
+•	Pagination for list endpoints (limit, offset)
+•	Filtering and sorting parameters
+API Versioning:
+•	URL-based versioning (/api/v1/, /api/v2/)
+•	Maintain backward compatibility
+•	Deprecation notices with sunset dates
+Response Format:
+Success Response:
+{
+  "success": true,
+  "data": {...},
+  "message": "Operation successful"
+}
+
+Error Response:
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input",
+    "details": [...]
+  }
+}
+8.2 Database Optimization
+Indexing Strategy:
+•	Primary keys on all ID fields
+•	Foreign key indexes
+•	Composite indexes for common queries (user_id + created_at)
+•	Full-text indexes for transcript search
+•	GIN indexes for JSONB columns
+Query Optimization:
+•	Use connection pooling (10-50 connections)
+•	Implement query caching with Redis
+•	Use database views for complex joins
+•	Implement read replicas for analytics queries
+•	Batch operations for bulk inserts
+Database Partitioning:
+•	Partition session_transcripts by date
+•	Partition proctoring_events by date
+•	Archive old data to cold storage
+8.3 Caching Strategy
+Redis Usage:
+•	User sessions (TTL: 15 minutes)
+•	API response caching (TTL: 5 minutes for static data)
+•	Rate limiting counters
+•	Temporary data during processing
+•	Pub/Sub for real-time notifications
+Cache Invalidation:
+•	Time-based expiration
+•	Event-based invalidation (on updates)
+•	Cache-aside pattern for database queries
+8.4 Asynchronous Processing
+Celery Task Queue:
+•	Document processing and vectorization
+•	Report generation
+•	Email notifications
+•	Batch analytics computation
+•	Recording post-processing
+Task Priority Levels:
+•	High: Real-time user-facing tasks
+•	Medium: Background processing
+•	Low: Cleanup and maintenance tasks
+Task Retry Logic:
+•	Exponential backoff
+•	Maximum retry attempts (3-5)
+•	Dead letter queue for failed tasks
+8.5 Error Handling & Logging
+Error Handling Strategy:
+•	Global exception handler
+•	Custom exception classes
+•	Graceful degradation
+•	User-friendly error messages
+•	Internal error tracking
+Logging Levels:
+•	DEBUG: Development debugging
+•	INFO: General information (user actions)
+•	WARNING: Unexpected but handled situations
+•	ERROR: Application errors requiring attention
+•	CRITICAL: System failures
+Log Structure:
+•	Timestamp
+•	Severity level
+•	Service name
+•	Request ID (for tracing)
+•	User ID (when applicable)
+•	Message
+•	Stack trace (for errors)
+Centralized Logging:
+•	ELK Stack (Elasticsearch, Logstash, Kibana)
+•	Structured logging (JSON format)
+•	Log retention: 90 days hot, 1 year archive
+8.6 Monitoring & Observability
+Metrics Collection:
+•	Application metrics (request rate, response time, error rate)
+•	Business metrics (sessions created, questions answered, user registrations)
+•	Infrastructure metrics (CPU, memory, disk, network)
+•	AI model metrics (inference time, token usage, model errors)
+Alerting Rules:
+•	Error rate > 5% for 5 minutes
+•	Response time > 2 seconds for 5 minutes
+•	Database connection pool exhaustion
+•	Disk usage >80%
+•	Failed authentication attempts > 100/minute
+•	Distributed Tracing:
+•	OpenTelemetry integration
+•	Request tracing across services
+•	Performance bottleneck identification
+•	________________________________________
+•	9. Scalability & Performance
+•	9.1 Horizontal Scaling Strategy
+•	Stateless Services:
+•	All API services designed to be stateless
+•	Session state stored in Redis
+•	Load balancing across multiple instances
+•	Auto-scaling based on CPU/memory metrics
+•	Database Scaling:
+•	Read replicas for analytics and reporting
+•	Connection pooling to manage database load
+•	Query optimization and caching
+•	Consider sharding for very large deployments
+•	LiveKit Scaling:
+•	Distributed LiveKit deployment
+•	Regional deployment for low latency
+•	Room-based routing
+•	Ollama Scaling:
+•	Multiple GPU instances
+•	Load balancing across model servers
+•	Model caching to reduce load times
+•	Queue system for inference requests
+•	9.2 Performance Targets
+•	API Response Times:
+•	Read operations: < 200ms (p95)
+•	Write operations: < 500ms (p95)
+•	Search operations: < 1s (p95)
+•	Real-time Communication:
+•	Audio latency: < 150ms
+•	Video latency: < 300ms
+•	Message delivery: < 100ms
+•	AI Response Times:
+•	Question generation: < 5s
+•	Answer evaluation: < 10s
+•	Context retrieval: < 1s
+•	Page Load Times:
+•	Initial page load: < 3s
+•	Interactive time: < 5s
+•	9.3 Optimization Techniques
+•	Frontend Optimization:
+•	Code splitting and lazy loading
+•	Asset optimization (compression, minification)
+•	CDN for static assets
+•	Browser caching
+•	Progressive Web App (PWA) features
+•	Backend Optimization:
+•	Database query optimization
+•	N+1 query prevention
+•	Response compression (gzip)
+•	Async operations for long-running tasks
+•	Connection pooling
+•	AI Model Optimization:
+•	Model quantization for faster inference
+•	Batch inference when possible
+•	Prompt optimization to reduce tokens
+•	Caching of common responses
+•	________________________________________
+•	10. Deployment Architecture
+•	10.1 Infrastructure Components
+•	Compute:
+•	Kubernetes cluster for microservices
+•	GPU nodes for Ollama (NVIDIA T4 or better)
+•	Auto-scaling node groups
+•	Storage:
+•	PostgreSQL (managed service or self-hosted with replication)
+•	S3-compatible object storage (AWS S3, MinIO, Backblaze)
+•	Redis (managed or self-hosted with persistence)
+•	ChromaDB (persistent volume storage)
+•	Networking:
+•	Load balancer (ALB/NLB)
+•	API Gateway
+•	CDN (CloudFront, Cloudflare)
+•	VPC with private subnets
+•	NAT Gateway for outbound traffic
+•	Security:
+•	WAF (Web Application Firewall)
+•	DDoS protection
+•	SSL/TLS certificates (Let's Encrypt)
+•	Secrets management (HashiCorp Vault, AWS Secrets Manager)
+•	10.2 Deployment Pipeline
+•	CI/CD Workflow:
+•	Code push to repository
+•	Automated testing (unit, integration)
+•	Code quality checks (linting, security scanning)
+•	Build Docker images
+•	Push to container registry
+•	Deploy to staging environment
+•	Run E2E tests
+•	Manual approval for production
+•	Deploy to production (rolling update)
+•	Post-deployment verification
+•	Environment Strategy:
+•	Development: Local and shared dev environment
+•	Staging: Production-like environment for testing
+•	Production: Live environment with redundancy
+•	Rollback Strategy:
+•	Keep previous deployment versions
+•	Automated rollback on health check failures
+•	Blue-green deployment for zero-downtime
+•	10.3 Disaster Recovery
+•	Backup Strategy:
+•	Database: Daily full backup, hourly incremental
+•	File storage: Versioning enabled, replication to second region
+•	Redis: RDB + AOF persistence
+•	Configuration: Version controlled in Git
+•	Recovery Objectives:
+•	RPO (Recovery Point Objective): < 1 hour
+•	RTO (Recovery Time Objective): < 4 hours
+•	Disaster Recovery Plan:
+•	Documented recovery procedures
+•	Regular DR drills (quarterly)
+•	Multi-region deployment (for critical components)
+•	Database failover automation
+•	________________________________________
+•	11. Testing Strategy
+•	11.1 Test Coverage Requirements
+•	Unit Tests (Target: 80% coverage)
+•	Test all business logic functions
+•	Test data validation
+•	Test utility functions
+•	Mock external dependencies
+•	Integration Tests
+•	Test API endpoints
+•	Test database operations
+•	Test service-to-service communication
+•	Test external API integrations (LiveKit, Ollama)
+•	End-to-End Tests
+•	Critical user journeys
+•	Interview session flow
+•	File upload and processing
+•	Report generation
+•	Performance Tests
+•	Load testing (simulate 100-1000 concurrent users)
+•	Stress testing (find breaking points)
+•	Endurance testing (sustained load over time)
+•	Spike testing (sudden traffic increases)
+•	11.2 Testing Tools
+•	Backend Testing:
+•	pytest (Python unit/integration tests)
+•	Hypothesis (property-based testing)
+•	Locust (load testing)
+•	pytest-mock (mocking)
+•	API Testing:
+•	Postman/Newman (API testing and automation)
+•	Tavern (API contract testing)
+•	Frontend Testing:
+•	Jest (unit tests)
+•	React Testing Library
+•	Cypress (E2E tests)
+•	Security Testing:
+•	OWASP ZAP (penetration testing)
+•	Bandit (Python security linting)
+•	Safety (dependency vulnerability scanning)
+•	11.3 Quality Assurance Process
+•	Code Review:
+•	All code requires peer review
+•	Automated checks before review
+•	Security review for sensitive changes
+•	Performance review for critical paths
+•	Testing Checklist:
+•	Unit tests pass
+•	Integration tests pass
+•	Code coverage meets threshold
+•	No security vulnerabilities
+•	Performance benchmarks met
+•	Documentation updated
+•	________________________________________
+•	12. Documentation Requirements
+•	12.1 Technical Documentation
+•	API Documentation:
+•	OpenAPI/Swagger specification
+•	Endpoint descriptions
+•	Request/response examples
+•	Authentication details
+•	Error codes and handling
+•	Architecture Documentation:
+•	System architecture diagrams
+•	Database schema diagrams
+•	Data flow diagrams
+•	Sequence diagrams for critical flows
+•	Infrastructure diagrams
+•	Developer Documentation:
+•	Setup instructions
+•	Development workflow
+•	Coding standards
+•	Git workflow
+•	Testing guidelines
+•	12.2 User Documentation
+•	User Guides:
+•	Getting started guide
+•	Feature tutorials
+•	FAQ section
+•	Troubleshooting guide
+•	Admin Documentation:
+•	System administration guide
+•	Configuration management
+•	Monitoring and alerting setup
+•	Backup and recovery procedures
+•	12.3 Operational Documentation
+•	Runbooks:
+•	Deployment procedures
+•	Incident response procedures
+•	Scaling procedures
+•	Disaster recovery procedures
+•	Maintenance Documentation:
+•	Regular maintenance tasks
+•	Database maintenance
+•	Security updates
+•	Performance tuning
+•	________________________________________
+•	13. Team Structure & Responsibilities
+•	13.1 Recommended Team Composition
+•	Backend Team (3-4 developers)
+•	API development
+•	Database design and optimization
+•	Service integration
+•	Security implementation
+•	AI/ML Team (2 developers)
+•	Ollama integration
+•	Prompt engineering
+•	Model optimization
+•	Answer evaluation algorithms
+•	Frontend Team (2-3 developers)
+•	Web application development
+•	UI/UX implementation
+•	Real-time features
+•	Mobile responsiveness
+•	DevOps Engineer (1-2)
+•	Infrastructure setup and management
+•	CI/CD pipeline
+•	Monitoring and alerting
+•	Security hardening
+•	QA Engineer (1-2)
+•	Test planning and execution
+•	Automation testing
+•	Performance testing
+•	Security testing
+•	Product Manager (1)
+•	Requirements gathering
+•	Feature prioritization
+•	Stakeholder communication
+•	Project coordination
+•	13.2 Communication & Collaboration
+•	Daily Standups:
+•	15-minute sync meetings
+•	Progress updates
+•	Blockers discussion
+•	Coordination
+•	Sprint Planning (Bi-weekly):
+•	Feature planning
+•	Story estimation
+•	Sprint goal setting
+•	Backlog refinement
+•	Code Reviews:
+•	Pull request reviews within 24 hours
+•	Constructive feedback
+•	Knowledge sharing
+•	Documentation:
+•	Confluence/Notion for documentation
+•	Jira/Linear for task tracking
+•	Slack/Discord for communication
+•	GitHub/GitLab for code collaboration
+•	________________________________________
+•	14. Risk Management
+•	14.1 Technical Risks
+•	Risk: AI Model Performance Degradation
+•	Mitigation: Multiple model options, fallback mechanisms, monitoring
+•	Contingency: Manual review option, alternative evaluation methods
+•	Risk: LiveKit Service Disruption
+•	Mitigation: Health checks, automatic failover, multiple regions
+•	Contingency: Graceful degradation, alternative communication methods
+•	Risk: Database Performance Issues
+•	Mitigation: Proper indexing, caching, query optimization
+•	Contingency: Read replicas, database sharding
+•	Risk: Security Breach
+•	Mitigation: Security audits, OWASP compliance, encryption
+•	Contingency: Incident response plan, user notification procedures
+•	14.2 Operational Risks
+•	Risk: Insufficient Scalability
+•	Mitigation: Load testing, auto-scaling, performance monitoring
+•	Contingency: Rapid scaling procedures, capacity planning
+•	Risk: Data Loss
+•	Mitigation: Regular backups, replication, versioning
+•	Contingency: Disaster recovery plan, data restoration procedures
+•	Risk: Service Downtime
+•	Mitigation: Redundancy, monitoring, automated recovery
+•	Contingency: Status page, user communication, SLA credits
+•	14.3 Business Risks
+•	Risk: Low User Adoption
+•	Mitigation: User research, beta testing, iterative development
+•	Contingency: Pivot strategy, feature adjustments
+•	Risk: Compliance Issues
+•	Mitigation: Legal review, GDPR compliance, data privacy measures
+•	Contingency: Compliance audit, policy updates
+•	________________________________________
+•	15. Success Metrics & KPIs
+•	15.1 Technical Metrics
+•	API uptime: > 99.9%
+•	Average response time: < 500ms
+•	Error rate: < 0.1%
+•	Code coverage: > 80%
+•	Security vulnerabilities: 0 critical, < 5 high
+•	15.2 Business Metrics
+•	Monthly Active Users (MAU)
+•	Session completion rate: > 80%
+•	User satisfaction score: > 4.5/5
+•	Average sessions per user per month: > 10
+•	User retention (30-day): > 60%
+•	15.3 AI Performance Metrics
+•	Answer evaluation accuracy: > 85%
+•	Question generation relevance: > 90%
+•	Vision detection accuracy: > 95%
+•	Average AI response time: < 5s
+•	________________________________________
+•	16. Conclusion
+•	This comprehensive development plan provides a structured approach to building a secure, scalable, and feature-rich AI-powered interview preparation platform. The phased approach allows for iterative development, continuous testing, and gradual feature rollout while maintaining focus on security, performance, and user experience.
+•	Key Success Factors:
+•	Strong security foundation (OWASP compliance)
+•	Robust AI integration with proper error handling
+•	Scalable architecture for future growth
+•	Comprehensive testing at all levels
+•	Clear documentation for maintainability
+•	User-centric design and feedback loops
+•	Next Steps:
+•	Team assembly and onboarding
+•	Development environment setup
+•	Kickoff meeting and sprint planning
+•	Begin Phase 1 implementation
+•	Establish monitoring and feedback mechanisms
+•	This plan serves as a living document and should be updated as the project evolves, new requirements emerge, and lessons are learned during development.
+
